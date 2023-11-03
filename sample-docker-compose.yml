@@ -1,0 +1,100 @@
+version: "3"
+
+networks:
+  t2_proxy:
+    external: true
+
+
+services:
+
+  # gallery-frontend:
+  #   image: connorcorso/gallery-frontend
+  #   container_name: gallery-frontend
+  #   hostname: gallery-frontend
+
+  #   restart: unless-stopped
+  #   networks: 
+  #     t2_proxy:
+
+
+  #   labels:
+  #     - traefik.enable=true
+  #     - "traefik.http.middlewares.nc-header.headers.customRequestHeaders.X-Forwarded-Proto=https"
+  #     - "traefik.http.routers.gallery-frontend-secure.middlewares=nc-header"
+
+  #     - traefik.http.services.gallery-frontend_svc.loadbalancer.server.port=443
+      
+  #     - traefik.http.routers.gallery-frontend.tls=true
+  #     - traefik.http.routers.gallery-frontend.rule=Host(`monitoring.ccorso.ca`)
+  #     - traefik.http.routers.gallery-frontend.entrypoints=websecure
+      
+  #     - traefik.http.routers.gallery-frontend.service=gallery-frontend_svc
+  #     - "traefik.http.services.dashboard.loadbalancer.server.scheme=https"
+
+
+  gallery-backend: 
+    image: connorcorso/gallery-backend
+    container_name: gallery-backend
+    hostname: gallery-backend
+
+    environment: 
+      - "DATABASE_PASSWORD=TEEHEE123"
+      - "DATABASE_URL=192.168.90.88"
+    volumes: 
+      - ./photos:/photos
+
+    restart: unless-stopped
+    networks: 
+      t2_proxy:
+        ipv4_address: 192.168.90.88
+
+
+    labels:
+      - traefik.enable=true
+
+      - traefik.http.services.gallery-backend_svc.loadbalancer.server.port=8001
+      
+      - traefik.http.routers.gallery-backend.tls=true
+      - traefik.http.routers.gallery-backend.rule=Host(`gallery-backend.ccorso.ca`)
+
+      - traefik.http.routers.gallery-backend.entrypoints=websecure
+      
+      - traefik.http.routers.gallery-backend.service=gallery-backend_svc
+      
+      
+  gallery-db:
+    image: mariadb:11
+    container_name: gallery-db
+    restart: unless-stopped
+    hostname: gallery-db
+    ports: 
+      - 3306:3306
+    #restart: unless-stopped
+    environment:
+      - "TZ=Canada/Eastern"
+      - "MARIADB_PASSWORD=TEEHEE123"
+      - "MARIADB_USER=gallery-backend"
+      
+    volumes:
+      - ./data:/var/lib/mysql
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.88
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports: 
+      - 8080:8080
+    labels:
+      - traefik.enable=true
+
+      - traefik.http.services.gallery-adminer_svc.loadbalancer.server.port=8080
+      
+      - traefik.http.routers.gallery-adminer.tls=true
+      - traefik.http.routers.gallery-adminer.rule=Host(`gallery-adminer.ccorso.ca`)
+      - traefik.http.routers.gallery-adminer.entrypoints=websecure
+      
+      - traefik.http.routers.gallery-adminer.service=gallery-adminer_svc
+    networks:
+      t2_proxy:
