@@ -12,8 +12,12 @@ def get_photos_paginated(db: Session, page: int = 0, page_size: int = 30):
     skip = page * page_size
     return db.query(models.Photo).offset(skip).limit(page_size).all()
 
-def add_photo(db: Session, photodata: schemas.Photo):
-    if photodata is not None:
+def add_photo(db: Session, file_path: str, original_filename: str):
+    if file_path is not None and original_filename is not None:
+        # create the schema with the information that we have in it, then dump it to the database
+        photodata = schemas.PhotoCreate(photo_title=original_filename, image_path=file_path)
+        
+        # dump the record to the db and refresh
         db.add(photodata)
         db.commit()
         db.refresh(photodata)

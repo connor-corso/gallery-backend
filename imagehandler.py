@@ -4,10 +4,13 @@ from uuid import uuid4
 import queue
 from errorlogger import log_error
 from sql_connection import crud
+import magic
+import shutil
+
 class PhotoHandler():
-    def __init__(self,db):
+    def __init__(self):
         self.processing_queue = queue.Queue()
-        self.db = db
+        
         
         # setup all the picture directories by checking to see if an environment variable exists for that and if not use the default
         
@@ -61,15 +64,29 @@ class PhotoHandler():
 
     def _add_reject(self,filepath: str,original_filename: str):
         log_error(f"file: {original_filename} ({filepath}) was a reject")
+        return 10
         
 
-    def _add_goodphoto(self,filepath: str):
-        crud.add_photo(self.db,filepath)
+    def _add_goodphoto(self,file_path: str, original_filename,db):
+        # get the name of the file
+        base_filename = str(os.path.basename(file_path))
+        # build the processed and originals path
+        processed_filepath = os.path.join(self.PHOTO_PROCESSED_PHOTOS_DIRECTORY, base_filename)
+        originals_filepath = os.path.join(self.PHOTO_ORIGINALS_DIRECTORY, base_filename)
+        
+        # make a copy to the originals then move it to the processed
+        shutil.copy(file_path, originals_filepath)
+        shutil.move(file_path,  processed_filepath)
+        
+        # create a database record to store the file metadata
+        crud.add_photo(db,processed_filepath, original_filename)
+        return 0
 
     def _enqueue_processing(self):
         pass
 
-    def handle_photo(self, upload_file: UploadFile):
+    # returns 0 if the photo was accepted, 10 if the photo was a reject
+    def handle_photo(self, upload_file: UploadFile, db):
         # save the upload file to a temp file that can be thrown in the queue
         original_filename = upload_file.filename
         # change blabla.png to uuid.png, this will probably have a fit if you give it "blabla" with no ".xyz"
@@ -83,7 +100,8 @@ class PhotoHandler():
             buff.close()
             
             # throw the filepath and filename in the queue to be processed
-            self.processing_queue.put((file_path,original_filename))
+            return self.process_photo(file_path, original_filename,db)
+            #self.processing_queue.put((file_path,original_filename))
             
         except Exception as e:
             log_error(e)
@@ -91,12 +109,19 @@ class PhotoHandler():
         return file_path, original_filename
 
 
-    def process_photo(self,filepath: str):
-        photo = self.processing_queue.get()
+    def process_photo(self,file_path: str, original_filename,db):
+        #photo = self.processing_queue.get()
         try:
 
-            if not photo.content_type == ("image/jpeg" or "image/png" or "image/webp"):
-                self._add_reject(filepath)
+            # check to see if the file is an image according to the magic numbers at the start of the file
+            if is_image(file_path):
+                return self._add_goodphoto(file_path, original_filename,db)
+            else:
+                return self._add_reject(file_path, original_filename)
         except Exception as e:
             log_error(e)
     
+def is_image(file_path):
+    mime = magic.Magic(mime=True)
+    mime_type = mime.from_file(file_path)
+    return mime_type.startswith("image/")

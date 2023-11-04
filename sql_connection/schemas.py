@@ -20,7 +20,7 @@ class Tag(TagBase):
 
 # Photo Schema
 class PhotoBase(BaseModel):
-    Photo_title: Optional[str]
+    photo_title: Optional[str]
     image_path: Optional[str]
     thumbnail_path: Optional[str]
     uploaded_at: Optional[int]
