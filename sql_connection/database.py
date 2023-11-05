@@ -5,7 +5,7 @@ import os
 
 
 
-SQLALCHEMY_DATABASE_URL = "mysql://CGCPhotos:" + str(os.environ['DATABASE_PASSWORD']) +"@" + str(os.environ['DATABASE_URL'])
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg://gallery-backend:" + str(os.environ['DATABASE_PASSWORD']) +"@" + str(os.environ['DATABASE_URL']) + "/gallery-backend"
 # SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 # SQLALCHEMY_DATABASE_URL = "postgresql://user:password@postgresserver/db"
 

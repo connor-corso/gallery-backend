@@ -1,0 +1,2 @@
+tries to upload a motion photo
+curl -X 'POST'   'https://gallery-backend.ccorso.ca/add-photo/'   -H 'accept: application/json'   -H 'Content-Type: multipart/form-data'   -F 'photo=@/home/connor/Pictures/test/PXL_20230615_203133574.MP.jpg;type=image/jpeg'

@@ -58,6 +58,8 @@ async def add_photo(photo: UploadFile, db: Session = Depends(get_db)):
         return {"success": "photo was accepted"}
     elif result == 10:
         return {"error": "photo was rejected"}
+    else:
+        return {"result": str(result)}
 
 @app.get("/get-photo/")
 async def get_photo(db: Session = Depends(get_db)):

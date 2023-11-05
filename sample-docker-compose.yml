@@ -39,14 +39,21 @@ services:
 
     environment: 
       - "DATABASE_PASSWORD=TEEHEE123"
-      - "DATABASE_URL=192.168.90.88"
+      - "DATABASE_URL=gallery-db"
+      - PHOTO_ROOT_DIRECTORY = "/photos"
+      - PHOTO_CACHE_DIRECTORY = "/photos/cache"
+      - PHOTO_UPLOAD_DIRECTORY = "/photos/uploads"
+      - PHOTO_REJECTS_DIRECTORY = "/photos/rejects"
+      - PHOTO_ORIGINALS_DIRECTORY = "/photos/originals"
+      - PHOTO_MOTION_PHOTOS_DIRECTORY = "/photos/motion_photos"
+      - PHOTO_PROCESSED_PHOTOS_DIRECTORY = "/photos/processed_photos"
     volumes: 
       - ./photos:/photos
 
     restart: unless-stopped
     networks: 
       t2_proxy:
-        ipv4_address: 192.168.90.88
+        ipv4_address: 192.168.90.138
 
 
     labels:
@@ -61,31 +68,30 @@ services:
       
       - traefik.http.routers.gallery-backend.service=gallery-backend_svc
       
-      
+
   gallery-db:
-    image: mariadb:11
+    image: postgres:latest
     container_name: gallery-db
-    restart: unless-stopped
     hostname: gallery-db
-    ports: 
-      - 3306:3306
     #restart: unless-stopped
     environment:
-      - "TZ=Canada/Eastern"
-      - "MARIADB_PASSWORD=TEEHEE123"
-      - "MARIADB_USER=gallery-backend"
+      - "POSTGRES_PASSWORD=TEEHEE123"
+      - "POSTGRES_USER=gallery-backend"
+      - "PGDATA=/var/lib/postgresql/data/pgdata"
       
     volumes:
-      - ./data:/var/lib/mysql
+      - ./db:/var/lib/postgresql/data
     networks:
       t2_proxy:
-        ipv4_address: 192.168.90.88
+        ipv4_address: 192.168.90.137
+
 
   adminer:
     image: adminer
+    container_name: gallery-adminer
     restart: unless-stopped
-    ports: 
-      - 8080:8080
+   # ports: 
+    #  - 8080:8080
     labels:
       - traefik.enable=true
 

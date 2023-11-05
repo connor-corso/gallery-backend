@@ -21,7 +21,7 @@ class Tag(TagBase):
 # Photo Schema
 class PhotoBase(BaseModel):
     photo_title: Optional[str]
-    image_path: Optional[str]
+    photo_path: Optional[str]
     thumbnail_path: Optional[str]
     uploaded_at: Optional[int]
     processed: bool = False
@@ -38,7 +38,7 @@ class PhotoUpdate(PhotoBase):
     pass
 
 class Photo(PhotoBase):
-    image_id: int
+    photo_id: int
     tags: List[Tag] = []
 
     class Config:

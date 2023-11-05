@@ -1,0 +1,9 @@
+.venv
+.vscode
+__pycache__
+pictures
+.gitignore
+.github
+testing
+
+sample-docker-compose.yml
