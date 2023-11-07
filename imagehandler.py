@@ -4,6 +4,7 @@ from uuid import uuid4
 import queue
 from errorlogger import log_error
 from sql_connection import crud
+import re
 import magic
 import shutil
 from sql_connection import schemas
@@ -63,13 +64,24 @@ class PhotoHandler():
         if not os.path.exists(self.PHOTO_PROCESSED_PHOTOS_DIRECTORY):
             os.makedirs(self.PHOTO_PROCESSED_PHOTOS_DIRECTORY)
 
-    def _add_reject(self,photodata: schemas.Photo):
+    # throw the reject photo into the reject pile and log it
+    def _add_reject(self,photodata: schemas.Photo) -> int:
         print(f"adding reject photo: {photodata.photo_title}")
         log_error(f"file: {photodata.photo_title} ({photodata.photo_path}) was a reject")
         return 10
         
 
-    def _add_goodphoto(self,photodata: schemas.Photo,db):
+    
+    def _add_goodphoto(self,photodata: schemas.Photo,db) -> int:
+        """
+        Take the known good photo and store it
+
+        Parameters:
+        photodata (schemas.Photo): Takes in the photodata object
+
+        Returns:
+        0 (int): Returns 0 *should maybe return something else if it fails to copy or crud fails*
+        """
         print(f"adding a good photo: {photodata.photo_title}")
         # get the name of the file
         base_filename = str(os.path.basename(photodata.photo_path))
@@ -82,6 +94,7 @@ class PhotoHandler():
         shutil.move(photodata.photo_path,  processed_filepath)
         
         # create a database record to store the file metadata
+        photodata.photo_path=processed_filepath
         crud.add_photo(db,photodata)
         return 0
 
@@ -89,7 +102,19 @@ class PhotoHandler():
         pass
 
     # returns 0 if the photo was accepted, 10 if the photo was a reject
-    def handle_photo(self, upload_file: UploadFile, db):
+    def handle_photo(self, upload_file: UploadFile, db) -> int:
+        """
+        This function takes an uploadfile from fastapi and does all of the behind the scenes work to save the file and add a record into the db so that you can pull the image out later
+
+        Parameters:
+        upload_file (UploadFile): The uploadfile from fastapi
+        db (database): the database dependency
+        
+        Returns:
+        int: Returns an int that signifies the outcome of handling the photo, if it was accepted returns 0, if it was added to the rejects then it returns 10
+        """
+
+
         print(f"handling photo: {upload_file.filename}")
         # save the upload file to a temp file that can be thrown in the queue
         original_filename = upload_file.filename
@@ -115,23 +140,25 @@ class PhotoHandler():
         return file_path, original_filename
 
 
-    def process_photo(self,photodata: schemas.Photo,db):
+    def process_photo(self,photodata: schemas.Photo,db) -> int:
         print(f"processing photo: {photodata.photo_title}")
         #photo = self.processing_queue.get()
         try:
 
             # check to see if the file is an photo according to the magic numbers at the start of the file
-            if is_photo(photodata.photo_path):
+            if is_photo(photodata.photo_path) and is_valid_filename(photodata.photo_title):
                 return self._add_goodphoto(photodata,db)
             else:
                 return self._add_reject(photodata)
         except Exception as e:
             log_error(e)
     
-def is_photo(file_path):
+def is_photo(file_path) -> bool:
     print(f"Checking if {file_path} is a photo")
     mime = magic.Magic(mime=True)
     mime_type = mime.from_file(file_path)
     status = mime_type.startswith("image/")
     print(f"Photo status: {status}")
     return status
+def is_valid_filename(filename: str) -> bool:
+    return bool(re.match("^[a-zA-Z0-9_.-]+$", filename))

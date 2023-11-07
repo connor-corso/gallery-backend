@@ -9,10 +9,12 @@ photo_tag_association = Table("photo_tag_association", Base.metadata,
 )
 
 class Photo(Base):
+    class Config:
+        from_attributes = True
     __tablename__ = "photos"
 
     photo_id = Column(Integer, primary_key=True, autoincrement=True)
-    photo_title= Column(String(255))
+    photo_title = Column(String(255))
     photo_path = Column(String(255))
     thumbnail_path = Column(String(255))
 
@@ -28,6 +30,8 @@ class Photo(Base):
 
 
 class Tag(Base):
+    class Config:
+        from_attributes = True
     __tablename__ = "tags"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name=Column(String, unique=True, nullable=False)

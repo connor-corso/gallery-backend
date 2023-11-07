@@ -61,11 +61,39 @@ async def add_photo(photo: UploadFile, db: Session = Depends(get_db)):
     else:
         return {"result": str(result)}
 
-@app.get("/get-photo/")
-async def get_photo(db: Session = Depends(get_db)):
-    photos = crud.get_photos_paginated(db, 0, 1)
-    if photos:
-        return FileResponse(photos[0].image_path)
-    else:
-        return {"error": "No photo found"}
 
+@app.get("/get-one-photo/")
+async def get_one_photo(db: Session = Depends(get_db)):
+    photo = crud.get_one_photo(db)
+    if photo:
+        print(str(photo))
+        print(str(photo.photo_path))
+        if os.path.isfile(photo.photo_path):
+            return FileResponse(photo.photo_path)
+        else:
+            raise HTTPException(status_code=404, detail="Photo file not found at that filepath")
+    else:
+        raise HTTPException(status_code=404, detail="No photo found")
+
+
+@app.get("/get-photo_info-paginated/")
+async def get_photo_info_paginated(db: Session = Depends(get_db), page_size: int= 30, page: int = 0):
+    photo_info = crud.get_photo_info_paginated(db,page=page,page_size=page_size)
+    if photo_info:
+        return photo_info
+    raise HTTPException(status_code=404, detail="No photoids found")
+
+
+@app.get("/get-photo-by-id/{photo_id}/")
+async def get_photo_by_id(photo_id: int, db: Session = Depends(get_db)):
+    photo_info = crud.get_photo_info_from_id(db, photo_id=photo_id)
+    if photo_info:
+        return FileResponse(photo_info.photo_path)
+    raise HTTPException(status_code=404, detail="No matching photo was found")
+    
+
+@app.get("/get-photos-paginated/")
+async def get_photos_paginated(db: Session = Depends(get_db), page_size: int = 30, page: int = 0):
+    photos = crud.get_photos_paginated(db, page=page, page_size=page_size)
+    if photos:
+        pass
