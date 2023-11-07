@@ -76,7 +76,7 @@ async def get_one_photo(db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No photo found")
 
 
-@app.get("/get-photo_info-paginated/")
+@app.get("/get-photo-info-paginated/")
 async def get_photo_info_paginated(db: Session = Depends(get_db), page_size: int= 30, page: int = 0):
     photo_info = crud.get_photo_info_paginated(db,page=page,page_size=page_size)
     if photo_info:
@@ -91,6 +91,13 @@ async def get_photo_by_id(photo_id: int, db: Session = Depends(get_db)):
         return FileResponse(photo_info.photo_path)
     raise HTTPException(status_code=404, detail="No matching photo was found")
     
+
+@app.get("/get-thumbnail-by-id/{photo_id}/")
+async def get_thumbnail_by_id(photo_id: int, db: Session = Depends(get_db)):
+    photo_info = crud.get_photo_info_from_id(db, photo_id=photo_id)
+    if photo_info:
+        return FileResponse(photo_info.thumbnail_path)
+    raise HTTPException(status_code=404, detail="No matching photo was found")
 
 @app.get("/get-photos-paginated/")
 async def get_photos_paginated(db: Session = Depends(get_db), page_size: int = 30, page: int = 0):

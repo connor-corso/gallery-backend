@@ -8,6 +8,7 @@ import re
 import magic
 import shutil
 from sql_connection import schemas
+from PIL import Image
 
 class PhotoHandler():
     def __init__(self):
@@ -70,7 +71,23 @@ class PhotoHandler():
         log_error(f"file: {photodata.photo_title} ({photodata.photo_path}) was a reject")
         return 10
         
+    def create_thumbnail(self, processed_filepath, thumbnail_filepath, max_size = 256, quality=85):
+        """
+        Create and save a compressed thumbnail of the image, maintaining the original aspect ratio.
 
+        :param input_path: Path to the input image.
+        :param output_path: Path to save the compressed thumbnail.
+        :param max_size: The maximum size of the thumbnail's width or height.
+        :param quality: The image quality, on a scale from 1 (worst) to 95 (best).
+        """
+        
+        with Image.open(processed_filepath) as img:
+            if img.mode in ("RGBA", "P", "LA", "CMYK"):
+                img = img.convert("RGB")
+            ratio = min(max_size / img.size[0], max_size / img.size[1])
+            new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+            img.thumbnail(new_size, Image.ANTIALIAS)
+            img.save(thumbnail_filepath, format="JPEG", quality=quality, optimize=True)
     
     def _add_goodphoto(self,photodata: schemas.Photo,db) -> int:
         """
@@ -88,11 +105,15 @@ class PhotoHandler():
         # build the processed and originals path
         processed_filepath = os.path.join(self.PHOTO_PROCESSED_PHOTOS_DIRECTORY, base_filename)
         originals_filepath = os.path.join(self.PHOTO_ORIGINALS_DIRECTORY, base_filename)
+        thumbnail_filepath = os.path.join(self.PHOTO_CACHE_DIRECTORY, base_filename)
         
         # make a copy to the originals then move it to the processed
         shutil.copy(photodata.photo_path, originals_filepath)
         shutil.move(photodata.photo_path,  processed_filepath)
         
+        # create a thumbnail for faster loading times
+        self.create_thumbnail(processed_filepath=processed_filepath, thumbnail_filepath=thumbnail_filepath)
+
         # create a database record to store the file metadata
         photodata.photo_path=processed_filepath
         crud.add_photo(db,photodata)
