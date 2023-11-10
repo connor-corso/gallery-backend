@@ -94,6 +94,7 @@ async def get_photo_by_id(photo_id: int, db: Session = Depends(get_db)):
 
 @app.get("/get-thumbnail-by-id/{photo_id}/")
 async def get_thumbnail_by_id(photo_id: int, db: Session = Depends(get_db)):
+    print(f"Getting thumbnail for image: {photo_id}")
     photo_info = crud.get_photo_info_from_id(db, photo_id=photo_id)
     if photo_info:
         return FileResponse(photo_info.thumbnail_path)

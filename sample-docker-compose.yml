@@ -7,30 +7,26 @@ networks:
 
 services:
 
-  # gallery-frontend:
-  #   image: connorcorso/gallery-frontend
-  #   container_name: gallery-frontend
-  #   hostname: gallery-frontend
+  gallery-frontend:
+    image: connorcorso/gallery-frontend
+    container_name: gallery-frontend
+    hostname: gallery-frontend
 
-  #   restart: unless-stopped
-  #   networks: 
-  #     t2_proxy:
+    restart: unless-stopped
+    networks: 
+      t2_proxy:
 
 
-  #   labels:
-  #     - traefik.enable=true
-  #     - "traefik.http.middlewares.nc-header.headers.customRequestHeaders.X-Forwarded-Proto=https"
-  #     - "traefik.http.routers.gallery-frontend-secure.middlewares=nc-header"
-
-  #     - traefik.http.services.gallery-frontend_svc.loadbalancer.server.port=443
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.gallery-frontend_svc.loadbalancer.server.port=8080
+            
+      - traefik.http.routers.gallery-frontend.tls=true
+      - traefik.http.routers.gallery-frontend.rule=Host(`gallery-frontend.ccorso.ca`)
       
-  #     - traefik.http.routers.gallery-frontend.tls=true
-  #     - traefik.http.routers.gallery-frontend.rule=Host(`monitoring.ccorso.ca`)
-  #     - traefik.http.routers.gallery-frontend.entrypoints=websecure
+      - traefik.http.routers.gallery-frontend.entrypoints=websecure
       
-  #     - traefik.http.routers.gallery-frontend.service=gallery-frontend_svc
-  #     - "traefik.http.services.dashboard.loadbalancer.server.scheme=https"
-
+      - traefik.http.routers.gallery-frontend.service=gallery-frontend_svc
 
   gallery-backend: 
     image: connorcorso/gallery-backend
