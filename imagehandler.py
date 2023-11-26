@@ -8,7 +8,7 @@ import re
 import magic
 import shutil
 from sql_connection import schemas
-from PIL import Image
+from PIL import Image, ImageOps
 
 class PhotoHandler():
     def __init__(self):
@@ -72,23 +72,29 @@ class PhotoHandler():
         log_error(f"file: {photodata.photo_title} ({photodata.photo_path}) was a reject")
         return 10
         
-    def create_thumbnail(self, processed_filepath, thumbnail_filepath, max_size = 512, quality=85):
+    def create_thumbnail(self, processed_filepath, thumbnail_filepath, dimension = 512, quality=85):
         """
-        Create and save a compressed thumbnail of the image, maintaining the original aspect ratio.
-
+        Create and save a compressed thumbnail of the image, this will crop the image to be exactly dimension x dimension pixels
+        
         :param input_path: Path to the input image.
         :param output_path: Path to save the compressed thumbnail.
         :param max_size: The maximum size of the thumbnail's width or height.
         :param quality: The image quality, on a scale from 1 (worst) to 95 (best).
         """
         
+
+        print(f"creating a thumbnail for {processed_filepath} and dumping it into {thumbnail_filepath}")
+        
         with Image.open(processed_filepath) as img:
+            ratio = dimension / (min(img.size[0],img.size[1])) 
+            print(f"size[0]={img.size[0]}, size[1]={img.size[1]}, ratio={ratio}")
+            img.resize((int(img.size[0] * ratio), int(img.size[1] * ratio)), Image.Resampling.LANCZOS)
             if img.mode in ("RGBA", "P", "LA", "CMYK"):
                 img = img.convert("RGB")
-            ratio = min(max_size / img.size[0], max_size / img.size[1])
-            new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
-            img.thumbnail(new_size)
-            img.save(thumbnail_filepath, format="JPEG", quality=quality, optimize=True)
+            thumb = ImageOps.fit(img,(int(dimension),int(dimension)),Image.Resampling.BICUBIC)
+            thumb.save(thumbnail_filepath, format="JPEG", quality=quality, optimize=True)
+            #img.thumbnail((dimensions,dimensions))
+            #img.save(thumbnail_filepath, format="JPEG", quality=quality, optimize=True)
     
     def _add_goodphoto(self,photodata: schemas.Photo,db) -> int:
         """
@@ -176,6 +182,19 @@ class PhotoHandler():
                 return self._add_reject(photodata)
         except Exception as e:
             log_error(e)
+
+    
+    def reprocess_photo(self, photo_info: schemas.Photo):
+        print("regenerating thumbnail for: ", photo_info.photo_title)
+        #print(f"removing file found at: {photo_info.thumbnail_path}")
+        try:
+            #shutil.rmtree(photo_info.thumbnail_path)
+            os.remove(os.path.abspath(photo_info.thumbnail_path))
+            #os.unlink(photo_info.thumbnail_path)
+        except Exception as e:
+            print(e)
+        self.create_thumbnail(processed_filepath=photo_info.photo_path, thumbnail_filepath=photo_info.thumbnail_path)
+
     
 def is_photo(file_path) -> bool:
     print(f"Checking if {file_path} is a photo")
