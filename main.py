@@ -105,3 +105,21 @@ async def get_photos_paginated(db: Session = Depends(get_db), page_size: int = 3
     photos = crud.get_photos_paginated(db, page=page, page_size=page_size)
     if photos:
         pass
+
+@app.put("/reprocess-all-photos/")
+async def reprocess_all_photos(db: Session = Depends(get_db)):
+    photos = crud.get_all_photos(db)
+    num_photos = 0
+    for photo in photos:
+        picture_handler.reprocess_photo(photo)
+        num_photos +=1
+    return {"processed" : num_photos}
+
+@app.put("/reprocess-photo-by-id/{photo_id}/")
+async def reprocess_photo_by_id(photo_id:int, db: Session = Depends(get_db)):
+    photo = crud.get_photo_info_from_id(db,photo_id)
+    result = picture_handler.reprocess_photo(photo)
+    if result == 0:
+        return {"success": "photo was reprocessed"}
+    else:
+        return {"error" : str(result)}
