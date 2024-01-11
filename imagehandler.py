@@ -9,6 +9,7 @@ import magic
 import shutil
 from sql_connection import schemas
 from PIL import Image, ImageOps
+from motionphotohandler import MotionPhotoHandler
 
 class PhotoHandler():
     def __init__(self):
@@ -109,18 +110,26 @@ class PhotoHandler():
         print(f"adding a good photo: {photodata.photo_title}")
         # get the name of the file
         base_filename = str(os.path.basename(photodata.photo_path))
+        base_motion_photo_filename = re.sub(r'\.jpg$', '.mp4',base_filename)
         # build the processed and originals path
         processed_filepath = os.path.join(self.PHOTO_PROCESSED_PHOTOS_DIRECTORY, base_filename)
         originals_filepath = os.path.join(self.PHOTO_ORIGINALS_DIRECTORY, base_filename)
         thumbnail_filepath = os.path.join(self.PHOTO_CACHE_DIRECTORY, base_filename)
         
+        # set the motion photo filepath 
+        motion_photo_filepath = os.path.join(self.PHOTO_MOTION_PHOTOS_DIRECTORY,base_motion_photo_filename)
+        photodata.motion_photo_path = motion_photo_filepath
+        
         print(f"Thumb: {thumbnail_filepath}, processed: {processed_filepath}")
         # make a copy to the originals then move it to the processed
         shutil.copy(photodata.photo_path, originals_filepath)
         shutil.move(photodata.photo_path,  processed_filepath)
-        
+        photodata.photo_path = processed_filepath
         # create a thumbnail for faster loading times
         self.create_thumbnail(processed_filepath=processed_filepath, thumbnail_filepath=thumbnail_filepath)
+        
+        # check to see if it is a motion photo
+        self.process_motion_photo(photodata)
 
         # Set the photodata's photo path and thumbnail path for later lookups
         photodata.photo_path=processed_filepath
@@ -153,7 +162,7 @@ class PhotoHandler():
         
         file_path=os.path.join(self.PHOTO_UPLOAD_DIRECTORY, filename)
         
-        photodata = schemas.PhotoCreate(photo_title=original_filename, photo_path=file_path, thumbnail_path=file_path, uploaded_at=0,visibility=-1,motion_photo=False,favorite=False)
+        photodata = schemas.PhotoCreate(photo_title=original_filename, photo_path=file_path, thumbnail_path=file_path,motion_photo_path=file_path, uploaded_at=0,visibility=-1,motion_photo=False,favorite=False)
 
         try: 
             buff = open(file_path, "wb")
@@ -195,6 +204,36 @@ class PhotoHandler():
             print(e)
         self.create_thumbnail(processed_filepath=photo_info.photo_path, thumbnail_filepath=photo_info.thumbnail_path)
 
+    def process_motion_photo(self, photo_info: schemas.Photo):
+        print("processing this file to see if it is a motion photo: ", photo_info.photo_title)
+        
+        # result = (photo_path,video_path) or it can be false
+        result = MotionPhotoHandler.split_file(photo_info.photo_path, photo_info.motion_photo_path)
+
+        # if the result is false then the file is not a motion photo
+        if result is False:
+            print("looks like it wasnt a motion photo")
+            photo_info.motion_photo = False
+            return
+        
+        # The file is a motion photo
+        photo_info.motion_photo = True
+        print("Looks like it was a motion photo")
+        #(split_photo, split_video) = result
+
+        # we can replace the picture that is there with this one to save some space, then copy the video into the videopath
+        #shutil.copy(split_photo,photo_info.photo_path)
+        #shutil.copy(split_video,photo_info.motion_photo_path)
+
+        
+
+
+        # three steps, first we need to split out the image from the video
+        # then we need to call ffmpeg to reencode the video to 264
+        # then we need to store the new image and video somewhere.. probably with another row in the database
+
+        # need to call ffmpeg or something here...
+        #command = ['ffmpeg', 'y', '-i', photo_info.photo_path, '-c:v', 'libx264', '-crf', '18', '-vf', 'format=yuv420p', '-c:a', 'copy', photo_info.photo_path]
     
 def is_photo(file_path) -> bool:
     print(f"Checking if {file_path} is a photo")
