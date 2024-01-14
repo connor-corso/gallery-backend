@@ -75,8 +75,9 @@ async def add_photo(photo: UploadFile, db: Session = Depends(get_db)):
 # Get photo methods
 
 @app.get("/get-photo-info-paginated/")
-async def get_photo_info_paginated(db: Session = Depends(get_db), page_size: int= 30, page: int = 0, gallery_id: int = None, tag_id: int = None):
-    photo_info = crud.get_photo_info_paginated(db, page=page, page_size=page_size, gallery_id=gallery_id, tag_id=tag_id)
+async def get_photo_info_paginated(db: Session = Depends(get_db), page_size: int= 30, page: int = 0, gallery_id: int = None, tag_id: int = None,favorite:int = 0):
+    
+    photo_info = crud.get_photo_info_paginated(db, page=page, page_size=page_size, gallery_id=gallery_id, tag_id=tag_id, favorite=favorite)
     if photo_info:
         return photo_info
     raise HTTPException(status_code=404, detail="No photoids found")
@@ -105,6 +106,13 @@ async def get_photo_by_id(photo_id: int, db: Session = Depends(get_db)):
     if photo_info and photo_info.motion_photo:
         return FileResponse(photo_info.motion_photo_path,media_type="video/mp4")
     raise HTTPException(status_code=404, detail="The photo does not have a motion photo with it or the photo was not found")
+
+###################################################################################
+# Favorite methods
+
+@app.put("/toggle-favorite/{photo_id}/")
+async def toggle_favorite(photo_id: int, db: Session = Depends(get_db)):
+    crud.toggle_favorite(db, photo_id=photo_id)
 
 
 ###################################################################################
@@ -144,14 +152,14 @@ async def reprocess_all_photos(db: Session = Depends(get_db)):
     photos = crud.get_all_photos(db)
     num_photos = 0
     for photo in photos:
-        picture_handler.reprocess_photo(photo)
+        picture_handler.reprocess_photo(photo,db)
         num_photos +=1
     return {"processed" : num_photos}
 
 @app.put("/reprocess-photo-by-id/{photo_id}/")
 async def reprocess_photo_by_id(photo_id:int, db: Session = Depends(get_db)):
     photo = crud.get_photo_info_from_id(db,photo_id)
-    result = picture_handler.reprocess_photo(photo)
+    result = picture_handler.reprocess_photo(photo,db)
     if result == 0:
         return {"success": "photo was reprocessed"}
     else:

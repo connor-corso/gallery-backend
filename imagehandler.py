@@ -193,16 +193,20 @@ class PhotoHandler():
             log_error(e)
 
     
-    def reprocess_photo(self, photo_info: schemas.Photo):
+    def reprocess_photo(self, photo_info: schemas.Photo,db):
         print("regenerating thumbnail for: ", photo_info.photo_title)
         #print(f"removing file found at: {photo_info.thumbnail_path}")
         try:
             #shutil.rmtree(photo_info.thumbnail_path)
             os.remove(os.path.abspath(photo_info.thumbnail_path))
+            if photo_info.motion_photo:
+                os.remove(os.path.abspath(photo_info.motion_photo_path))
             #os.unlink(photo_info.thumbnail_path)
         except Exception as e:
             print(e)
         self.create_thumbnail(processed_filepath=photo_info.photo_path, thumbnail_filepath=photo_info.thumbnail_path)
+        #self.process_motion_photo(photo_info)
+        #self.process_photo(photo_info,db)
 
     def process_motion_photo(self, photo_info: schemas.Photo):
         print("processing this file to see if it is a motion photo: ", photo_info.photo_title)

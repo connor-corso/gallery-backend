@@ -18,7 +18,8 @@ def get_photos_paginated(db: Session, page: int = 0, page_size: int = 30) -> lis
         
 
 # takes a db, a page number, a page size, and optional gallery_id and tag_id and will return a page of photos
-def get_photo_info_paginated(db: Session, page: int = 0, page_size: int = 30, gallery_id: int = None, tag_id: int = None):
+def get_photo_info_paginated(db: Session, page: int = 0, page_size: int = 30, gallery_id: int = None, tag_id: int = None, favorite: int = 0):
+    
     skip = page * page_size
     query = db.query(models.Photo)
 
@@ -29,6 +30,8 @@ def get_photo_info_paginated(db: Session, page: int = 0, page_size: int = 30, ga
     if tag_id is not None:
         query = query.join(models.Tag).filter(models.Tag.tag_id == tag_id)
 
+    if favorite == 1:
+        query = query.filter(models.Photo.favorite == True)
     db_photos = query.offset(skip).limit(page_size).all()
 
     if db_photos:
@@ -100,3 +103,12 @@ def create_gallery(db: Session, gallery_info: models.Gallery):
         db.refresh(gallery_info)
     else:
         print("error")
+
+def toggle_favorite(db: Session, photo_id: int):
+    photo_info = get_photo_info_from_id(db, photo_id=photo_id)
+    if photo_info:
+        photo_info.favorite = not photo_info.favorite
+        
+        db.commit()
+        return True
+    return False
